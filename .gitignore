@@ -1,0 +1,12 @@
+.vscode
+.idea
+.env
+node_modules/
+dist/
+*.zip
+.terraform/
+terraform.tfstate
+.terraform*
+volume/
+*.csv
+.DS_Store
