@@ -1,0 +1,110 @@
+lockfileVersion: '6.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+dependencies:
+  '@h4ad/serverless-adapter':
+    specifier: ^4.2.1
+    version: 4.2.1(@types/body-parser@1.19.5)(@types/cors@2.8.17)
+
+packages:
+
+  /@h4ad/serverless-adapter@4.2.1(@types/body-parser@1.19.5)(@types/cors@2.8.17):
+    resolution: {integrity: sha512-Yh3yn5MRCYWzHgkOQ3S+Z0ATborXqddAsGFAMNbU/SkOdftjviNaM1CvL3M+kcEdoMhQvRZ6urGGQSO6pJ+BuA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@apollo/server': '>= 4.0.0'
+      '@azure/functions': '>= 2.0.0'
+      '@deepkit/http': '>= 1.0.1-alpha.94'
+      '@google-cloud/functions-framework': '>= 3.0.0'
+      '@hapi/hapi': '>= 21.0.0'
+      '@trpc/server': '>= 10.0.0'
+      '@types/aws-lambda': '>= 8.10.92'
+      '@types/body-parser': '>= 1.19.2'
+      '@types/cors': '>= 2.8.12'
+      '@types/express': '>= 4.15.4'
+      '@types/hapi': '*'
+      '@types/koa': '>= 2.11.2'
+      body-parser: '>= 1.20.0'
+      cors: '>= 2.8.5'
+      express: '>= 4.15.4'
+      fastify: '>= 4.0.0'
+      firebase-admin: '>= 11.0.0'
+      firebase-functions: '>= 4.0.0'
+      http-errors: '>= 2.0.0'
+      koa: '>= 2.5.1'
+      reflect-metadata: ^0.1.13
+    peerDependenciesMeta:
+      '@apollo/server':
+        optional: true
+      '@azure/functions':
+        optional: true
+      '@deepkit/http':
+        optional: true
+      '@google-cloud/functions-framework':
+        optional: true
+      '@hapi/hapi':
+        optional: true
+      '@trpc/server':
+        optional: true
+      '@types/aws-lambda':
+        optional: true
+      '@types/express':
+        optional: true
+      '@types/hapi':
+        optional: true
+      '@types/koa':
+        optional: true
+      body-parser:
+        optional: true
+      cors:
+        optional: true
+      express:
+        optional: true
+      fastify:
+        optional: true
+      firebase-admin:
+        optional: true
+      firebase-functions:
+        optional: true
+      http-errors:
+        optional: true
+      koa:
+        optional: true
+      reflect-metadata:
+        optional: true
+    dependencies:
+      '@types/body-parser': 1.19.5
+      '@types/cors': 2.8.17
+    dev: false
+
+  /@types/body-parser@1.19.5:
+    resolution: {integrity: sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==}
+    dependencies:
+      '@types/connect': 3.4.38
+      '@types/node': 22.5.0
+    dev: false
+
+  /@types/connect@3.4.38:
+    resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+    dependencies:
+      '@types/node': 22.5.0
+    dev: false
+
+  /@types/cors@2.8.17:
+    resolution: {integrity: sha512-8CGDvrBj1zgo2qE+oS3pOCyYNqCPryMWY2bGfwA0dcfopWGgxs+78df0Rs3rc9THP4JkOhLsAa+15VdpAqkcUA==}
+    dependencies:
+      '@types/node': 22.5.0
+    dev: false
+
+  /@types/node@22.5.0:
+    resolution: {integrity: sha512-DkFrJOe+rfdHTqqMg0bSNlGlQ85hSoh2TPzZyhHsXnMtligRWpxUySiyw8FY14ITt24HVCiQPWxS3KO/QlGmWg==}
+    dependencies:
+      undici-types: 6.19.8
+    dev: false
+
+  /undici-types@6.19.8:
+    resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+    dev: false

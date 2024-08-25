@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"@h4ad/serverless-adapter": "^4.2.1"
+	}
+}
