@@ -15,16 +15,14 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=ap-southeast-2
     volumes:
-      - ./api/src:/app/src:z
+      - ./backend/api/src:/app/src:z
     depends_on:
       - localstack
     
 
   # combine with log-service s3 handler
   localstack:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.localstack
+    image: localstack/localstack:latest
     ports:
       - 4566:4566
     environment:
