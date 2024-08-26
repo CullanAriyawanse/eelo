@@ -28,6 +28,10 @@ if (require.main === module) {
     console.log(`App listening on port: ${PORT}`);
   });
 }
+
+app.get('/', (req: Request, res: Response) => {
+  return res.status(200).json({ message: 'log-management lambda function' });
+});
   
 
 export default app

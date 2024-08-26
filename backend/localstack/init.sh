@@ -9,13 +9,20 @@ AWS_OPTIONS="--profile test --endpoint-url http://localhost:4566"
 AWS_ACCOUND_ID="000000000000"
 
 aws dynamodb create-table \
-    --table-name log-management-database \
+    --table-name users-database \
     --attribute-definitions \
-        AttributeName=TrackDayDate,AttributeType=S \
-        AttributeName=TrackDayDetails,AttributeType=S \
+        AttributeName=UserId,AttributeType=S \
     --key-schema \
-        AttributeName=TrackDayDate,KeyType=HASH \
-        AttributeName=TrackDayDetails,KeyType=RANGE \
+        AttributeName=UserId,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
+    $AWS_OPTIONS
+
+aws dynamodb create-table \
+    --table-name lobbies-database \
+    --attribute-definitions \
+        AttributeName=UserId,AttributeType=S \
+    --key-schema \
+        AttributeName=UserId,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
     $AWS_OPTIONS
 
