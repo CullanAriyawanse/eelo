@@ -1,0 +1,32 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "Api routes",
+  "main": "./dist/server.js",
+  "scripts": {
+    "start": "node ./dist/server.js",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "nodemon",
+    "lint": "eslint './src/**/*.{ts,js}'",
+    "lint:fix": "eslint './src/**/*.{ts,js}' --fix",
+    "prettier": "prettier --check './src/**/*.{ts,js}'",
+    "prettier:fix": "prettier --write './src/**/*.{ts,js}'"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.637.0",
+    "@h4ad/serverless-adapter": "^4.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "envalid": "^8.0.0"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@types/express": "^4.17.21",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}

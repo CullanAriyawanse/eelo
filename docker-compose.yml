@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+      target: dev
+    command: npm run dev
+    working_dir: /app
+    ports:
+      - 8000:8000
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=ap-southeast-2
+    volumes:
+      - ./backend/api/src:/app/src:z
+    depends_on:
+      - localstack
+    
+
+  # combine with log-service s3 handler
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - 4566:4566
+    environment:
+      - DEBUG=0
+      - PERSISTENCE=0
+      - SERVICES=dynamodb,lambda,logs
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./localstack/init.sh:/etc/localstack/init/ready.d/init.sh"
