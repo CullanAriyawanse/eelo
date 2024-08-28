@@ -8,7 +8,7 @@ import { DefaultHandler } from '@h4ad/serverless-adapter/lib/handlers/default';
 import { PromiseResolver } from '@h4ad/serverless-adapter/lib/resolvers/promise';
 import DynamoDBService from './dynamoDBService';
 import validateEnv from './util/validateEnv';
-import { CreateLobbyRequest } from './util/types';
+import { CreateLobbyRequest, CreateUserRequest } from './util/types';
 import { BadRequestError } from './util/exceptions';
 
 const PORT = 8000;
@@ -62,6 +62,7 @@ app.post('/api/lobby/create-lobby', async (req: Request, res: Response) => {
   }
 })
 
+// Get lobby information
 app.get('/api/log_management/lobby-info', async (req: Request, res: Response) => {
   try {
     const lobbyId = req.body.lobbyId;
@@ -77,11 +78,26 @@ app.get('/api/log_management/lobby-info', async (req: Request, res: Response) =>
   }
 });
 
-// Get lobby information
-
-
 
 // Route to add user to users table
+app.post('/api/lobby/create-user', async (req: Request, res: Response) => {
+  try {
+    const createUserRequest = req.body as CreateUserRequest;
+    const response = await dbService.createUser(
+      createUserRequest.userId,
+      createUserRequest.username
+    );
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
 
 // Route to add user to lobbies table 
 

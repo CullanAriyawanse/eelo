@@ -14,3 +14,15 @@ export type LobbyUserInfo = {
 }
 
 // User Types
+export type UserInfo = {
+    userId: string, 
+    username: string,
+    lobbies: string[],
+    lobbyInvites: string[],
+    friends: string[]
+}
+
+export type CreateUserRequest = {
+    userId: string,
+    username: string
+}

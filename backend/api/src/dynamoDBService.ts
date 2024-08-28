@@ -21,7 +21,45 @@ class DynamoDBService {
     this.client = new DynamoDBClient(config);
   }
 
-  
+  /**
+   * Create user 
+   * 
+   * @param {string} lobbyName 
+   * @param {string} userId 
+   * @returns
+   */
+  public createUser = async (
+    userId: string, 
+    username: string
+  ): Promise<string> => {
+    const userMap: Record<string, AttributeValue> = {
+      "userId": { S: userId },
+      "username": { S: username },
+      "lobbies": { L: [] },
+      "lobbyInvites": { S: new Date().toISOString() },
+      "GamesParticipated": { N: "0" }
+    };
+
+    const command = new PutItemCommand({
+      TableName: validateEnv.USER_TABLE_NAME,
+      Item: {
+        UserId: { S: `USER#${userId}` },
+        Username: { S: username },
+        Lobbies: { L: [] },
+        LobbyInvites: { L: [] },
+        Friends: { L: [] }
+      },
+    });
+
+    try {
+      await this.client.send(command);
+      console.log('User created');
+      return 'User created';
+    } catch (err) {
+      console.log(`Error creating user: ${err}`);
+      throw new DataServiceError(`Error creating user: ${err}`);
+    }
+  }
 
   /**
    * Creates lobby
@@ -34,6 +72,8 @@ class DynamoDBService {
     lobbyName: string, 
     userId: string
   ): Promise<string> => {
+
+    // TODO: Check user exists in users database
 
     const lobbyId = uuidv4();
     const userMap: Record<string, AttributeValue> = {
@@ -64,6 +104,12 @@ class DynamoDBService {
     }
   }
 
+  /**
+   * Gets data from single lobby using lobbyId
+   * 
+   * @param {string} lobbyId
+   * @returns {LobbyUserInfo[]} 
+   */
   public getLobbyInfo = async (lobbyId: string): Promise<LobbyUserInfo[]> => {
     const command = new ScanCommand({
       TableName: validateEnv.LOBBY_TABLE_NAME,
@@ -72,7 +118,7 @@ class DynamoDBService {
         '#pk': 'LobbyId',
       },
       ExpressionAttributeValues: {
-        ':trackDayPrefix': { S: `TRACK#${lobbyId}` },
+        ':lobbyIdPrefix': { S: `TRACK#${lobbyId}` },
       },
     });
 
@@ -80,11 +126,12 @@ class DynamoDBService {
       const res = await this.client.send(command);
       const lobbyUserInfos: LobbyUserInfo[] = [];
 
-        // Get user name from users table given userId
-        const userName = 'Bob'
+      
+      if (res.Items != undefined) {
+        res.Items.forEach((record: any) => {
+            // Get user name from users table given userId
+            const userName = 'Bob'
 
-        if (res.Items != undefined) {
-          res.Items.forEach((record: any) => {
             const item = {
               'userName': userName,
               'userId': record['userId']["S"],
@@ -96,10 +143,13 @@ class DynamoDBService {
             lobbyUserInfos.push(item);
             console.log(lobbyUserInfos);
           });
+
+          return lobbyUserInfos;
+        } else {
+          throw new DataServiceError(`Error getting lobby info`)
         }
-        return lobbyUserInfos;
     } catch (err) {
-      throw new DataServiceError(`Error getting track days: ${err}`);
+      throw new DataServiceError(`Error getting lobby info: ${err}`);
     }
   };
 }
