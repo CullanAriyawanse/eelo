@@ -62,6 +62,24 @@ app.post('/api/lobby/create-lobby', async (req: Request, res: Response) => {
   }
 })
 
+app.get('/api/log_management/lobby-info', async (req: Request, res: Response) => {
+  try {
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.getLobbyInfo(lobbyId);
+
+    return res.status(200).json(response);
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).json({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+});
+
+// Get lobby information
+
+
 
 // Route to add user to users table
 
