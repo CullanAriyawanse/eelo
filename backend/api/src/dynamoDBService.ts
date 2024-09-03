@@ -24,8 +24,8 @@ class DynamoDBService {
   /**
    * Create user 
    * 
-   * @param {string} lobbyName 
    * @param {string} userId 
+   * @param {string} username 
    * @returns
    */
   public createUser = async (
@@ -62,6 +62,54 @@ class DynamoDBService {
   }
 
   /**
+   * Add user to lobby 
+   * 
+   * @param {string} userId 
+   * @param {string} lobbyId 
+   * @returns
+   */
+  public addUserToLobby = async (
+    userId: string, 
+    lobbyId: string
+  ): Promise<string> => {
+
+    // TODO: Check user exists in users database
+
+    const userMap: Record<string, AttributeValue> = {
+      "UserId": { S: userId },
+      "Points": { N: "800" },
+      "Role": { S: "player" },
+      "JoinDate": { S: new Date().toISOString() },
+      "GamesParticipated": { N: "0" }
+    };
+
+    const command = new UpdateItemCommand({
+      TableName: validateEnv.LOBBY_TABLE_NAME,
+      Key: {
+        LobbyId: { S: `LOBBY#${lobbyId}` },
+      },
+      UpdateExpression: "SET #users = list_append(#users, :newUser)",
+      ExpressionAttributeNames: {
+        "#users": "Users"
+      },
+      ExpressionAttributeValues: {
+        ":newUser": { L: [{ M: userMap }] }
+      },
+      ReturnValues: "UPDATED_NEW"
+    });
+
+    try {
+      await this.client.send(command);
+      console.log('User added to lobby');
+      return 'User added to lobby';
+    } catch (err) {
+      console.log(`Error adding user to lobby: ${err}`);
+      throw new DataServiceError(`Error adding user to lobby: ${err}`);
+    }
+  }
+
+
+  /**
    * Creates lobby
    * 
    * @param {string} lobbyName 
@@ -79,7 +127,7 @@ class DynamoDBService {
     const userMap: Record<string, AttributeValue> = {
       "UserId": { S: userId },
       "Points": { N: "800" },
-      "Role": { S: "admin" },
+      "Role": { S: "owner" },
       "JoinDate": { S: new Date().toISOString() },
       "GamesParticipated": { N: "0" }
     };
@@ -89,7 +137,7 @@ class DynamoDBService {
       Item: {
         LobbyId: { S: `LOBBY#${lobbyId}` },
         LobbyName: { S: lobbyName },
-        Users: { M: userMap },
+        Users: { L: [{ M: userMap }] },
         GamesPlayed: { N: "0" },
       },
     });

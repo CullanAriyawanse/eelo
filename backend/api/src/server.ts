@@ -79,7 +79,7 @@ app.get('/api/log_management/lobby-info', async (req: Request, res: Response) =>
 });
 
 
-// Route to add user to users table
+// Add user to users table
 app.post('/api/lobby/create-user', async (req: Request, res: Response) => {
   try {
     const createUserRequest = req.body as CreateUserRequest;
@@ -99,19 +99,40 @@ app.post('/api/lobby/create-user', async (req: Request, res: Response) => {
   }
 })
 
-// Route to add user to lobbies table 
+// Add user to lobbies table 
+app.patch('/api/lobby/add-user-to-lobby', async (req: Request, res: Response) => {
+  try {
+    const userId = req.body.userId;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.addUserToLobby(
+      userId,
+      lobbyId,
+    );
 
-// Route to invite user to lobby (Only admin)
+    return res.status(200).json({ message: response });
 
-// Route to update points in table 
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
 
-// Route to leave lobby 
+// Invite user to lobby (Only admimn/owner)
 
-// Route to kick from lobby (Only admin)
+// Update points in table 
 
-// Route to delete lobby (Only admin)
+// Leave lobby 
 
-// Route to add admin perms to users
+// Kick from lobby (Only admimn/owner)
+
+// Delete lobby (Only admimn/owner)
+
+// Add admin perms to users
+
+// Increase/decrease points to multiple users 
   
 
 export default app
