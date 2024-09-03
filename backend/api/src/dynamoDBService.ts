@@ -98,6 +98,8 @@ class DynamoDBService {
       ReturnValues: "UPDATED_NEW"
     });
 
+    // TODO: Remove invite from users lobby invites 
+
     try {
       await this.client.send(command);
       console.log('User added to lobby');
@@ -107,6 +109,42 @@ class DynamoDBService {
       throw new DataServiceError(`Error adding user to lobby: ${err}`);
     }
   }
+
+  public inviteUsersToLobby = async (
+    userIds: string[], 
+    lobbyId: string
+  ): Promise<string> => {
+  
+    // TODO: Check user exists in users database
+  
+    try {
+      for (const userId of userIds) {
+        const command = new UpdateItemCommand({
+          TableName: validateEnv.USER_TABLE_NAME,
+          Key: {
+            UserId: { S: `USER#${userId}` },
+          },
+          UpdateExpression: "SET #lobbyInvites = list_append(if_not_exists(#lobbyInvites, :emptyList), :lobbyId)",
+          ExpressionAttributeNames: {
+            "#lobbyInvites": "LobbyInvites"
+          },
+          ExpressionAttributeValues: {
+            ":lobbyId": { L: [{ S: `LOBBY#${lobbyId}` }] },
+            ":emptyList": { L: [] }
+          },
+          ReturnValues: "UPDATED_NEW"
+        });
+  
+        await this.client.send(command);
+      }
+      console.log('Users invited to lobby');
+      return 'Users invited to lobby';
+    } catch (err) {
+      console.log(`Error inviting users to lobby: ${err}`);
+      throw new DataServiceError(`Error inviting users to lobby: ${err}`);
+    }
+  }
+  
 
 
   /**

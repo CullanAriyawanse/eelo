@@ -120,9 +120,28 @@ app.patch('/api/lobby/add-user-to-lobby', async (req: Request, res: Response) =>
   }
 })
 
-// Invite user to lobby (Only admimn/owner)
+// Invite users to lobby (Only admin/owner)
+app.patch('/api/lobby/invite-users-to-lobby', async (req: Request, res: Response) => {
+  try {
+    const userIds = req.body.userIds;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.inviteUsersToLobby(
+      userIds,
+      lobbyId,
+    );
 
-// Update points in table 
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
+
+
 
 // Leave lobby 
 
@@ -133,6 +152,6 @@ app.patch('/api/lobby/add-user-to-lobby', async (req: Request, res: Response) =>
 // Add admin perms to users
 
 // Increase/decrease points to multiple users 
-  
+
 
 export default app
