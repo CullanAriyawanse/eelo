@@ -24,20 +24,13 @@ export class BadRequestError extends Error {
     } 
   }
   
-  export class InvalidSessionName extends BadRequestError {
-    constructor(message = 'Please provide a session name without the characters # or :') { 
+  export class InvalidRole extends BadRequestError {
+    constructor(message = 'Non-admin role cannot perform this request') { 
       super(message); 
-      this.name = 'InvalidSessionName'
+      this.name = 'InvalidRole'
     } 
   }
-  
-  export class InvalidTrackDayDate extends BadRequestError {
-    constructor(message = 'Please provide a valid track day date') {
-      super(message);
-      this.name = "InvalidTrackDayDate"
-    }
-  }
-  
+
   export class DataServiceError extends BadRequestError {
     constructor(message: string) { 
       super(message); 

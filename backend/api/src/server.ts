@@ -141,13 +141,52 @@ app.patch('/api/lobby/invite-users-to-lobby', async (req: Request, res: Response
   }
 })
 
+// User leaves lobby 
+app.delete('/api/lobby/user-leave-lobby', async (req: Request, res: Response) => {
+  try {
+    const userId = req.body.userId;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.userLeaveLobby(
+      userId,
+      lobbyId,
+    );
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
 
 
-// Leave lobby 
+// Kick from lobby (Only admin/owner)
+app.delete('/api/lobby/kick-user', async (req: Request, res: Response) => {
+  try {
+    const adminId = req.body.adminId;
+    const userId = req.body.userId;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.kickUserFromLobby(
+      adminId,
+      userId,
+      lobbyId,
+    );
 
-// Kick from lobby (Only admimn/owner)
+    return res.status(200).json({ message: response });
 
-// Delete lobby (Only admimn/owner)
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
+
+// Delete lobby (Only admin/owner)
 
 // Add admin perms to users
 
