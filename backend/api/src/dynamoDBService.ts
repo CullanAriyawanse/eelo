@@ -122,8 +122,6 @@ class DynamoDBService {
       throw new Error(`Error removing user from lobby or lobby from user's lobbies: ${err}`);
     }
   };
-  
-
 
   /**
    * Create user 
@@ -171,13 +169,14 @@ class DynamoDBService {
   try {
     // Adding user details to the lobby
     const userMap: Record<string, AttributeValue> = {
-      "UserId": { S: userId },
-      "Points": { N: "800" },
-      "Role": { S: "player" },
-      "JoinDate": { S: new Date().toISOString() },
-      "GamesParticipated": { N: "0" }
+      "userId": { S: userId },
+      "points": { N: "800" },
+      "role": { S: "player" },
+      "joinDate": { S: new Date().toISOString() },
+      "gamesParticipated": { N: "0" }
     };
 
+    // Add user object to users column in lobby 
     const lobbyUpdateCommand = new UpdateItemCommand({
       TableName: validateEnv.LOBBY_TABLE_NAME,
       Key: {
@@ -197,7 +196,7 @@ class DynamoDBService {
     const userUpdateCommand = new UpdateItemCommand({
       TableName: validateEnv.USER_TABLE_NAME,
       Key: {
-        UserId: { S: userId }
+        UserId: { S: `USER#${userId}` }
       },
       UpdateExpression: "SET Lobbies = list_append(if_not_exists(Lobbies, :empty_list), :lobbyId)",
       ExpressionAttributeValues: {
@@ -234,6 +233,10 @@ class DynamoDBService {
   ): Promise<string> => {
   
     // TODO: Check user exists in users database
+
+    // TODO: Check user is not already invited
+
+    // TODO: Check user doesn't already exist in lobby 
   
     try {
       for (const userId of userIds) {
@@ -262,7 +265,56 @@ class DynamoDBService {
       throw new DataServiceError(`Error inviting users to lobby: ${err}`);
     }
   }
-  
+
+   /**
+   * Remove lobby invite
+   * 
+   * @param {string} userId
+   * @param {string} lobbyId 
+   * @returns {Promise<string>}
+   */
+  public removeLobbyInvite = async (
+    userId: string, 
+    lobbyId: string
+  ): Promise<string> => {
+    try {
+      // Fetch the user to get the current list of lobby invites
+      const getUserCommand = new GetItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${userId}` }
+        },
+        ProjectionExpression: "LobbyInvites"
+      });
+
+      const userData = await this.client.send(getUserCommand);
+      const invitesList = userData.Item?.LobbyInvites?.L ?? [];
+      const inviteIndex = invitesList.findIndex(invite => invite?.S === `LOBBY#${lobbyId}`);
+
+      if (inviteIndex === -1) {
+        throw new Error("Lobby invite not found in user's invites");
+      }
+
+      // Update the user to remove the lobby from their invites list
+      const updateUserCommand = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${userId}` },
+        },
+        UpdateExpression: `REMOVE LobbyInvites[${inviteIndex}]`,
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      await this.client.send(updateUserCommand);
+      console.log('Removed lobby id from invites list');
+      return 'Removed lobby id from invites list';
+    } catch (err) {
+      console.log(`Error removing lobby id from invites list: ${err}`);
+      throw new DataServiceError(`Error removing lobby id from invites list: ${err}`);
+    }
+  }
+
+  // TODO: Fix user leave lobby cannot find user in usermap in lobby
   /**
    * User leaves lobby themselves
    * 
@@ -312,6 +364,7 @@ class DynamoDBService {
       }
     };
 
+  // TODO: LobbyId should be added to lobbies list in users table when user creates lobby
   /**
    * Creates lobby
    * 
@@ -326,11 +379,11 @@ class DynamoDBService {
     // TODO: Check user exists in users database
     const lobbyId = uuidv4();
     const userMap: Record<string, AttributeValue> = {
-      "UserId": { S: userId },
-      "Points": { N: "800" },
-      "Role": { S: "owner" },
-      "JoinDate": { S: new Date().toISOString() },
-      "GamesParticipated": { N: "0" }
+      "userId": { S: userId },
+      "points": { N: "800" },
+      "role": { S: "owner" },
+      "joinDate": { S: new Date().toISOString() },
+      "gamesParticipated": { N: "0" }
     };
     const command = new PutItemCommand({
       TableName: validateEnv.LOBBY_TABLE_NAME,
@@ -365,7 +418,7 @@ class DynamoDBService {
         '#pk': 'LobbyId',
       },
       ExpressionAttributeValues: {
-        ':lobbyIdPrefix': { S: `TRACK#${lobbyId}` },
+        ':lobbyIdPrefix': { S: `LOBBY#${lobbyId}` },
       },
     });
 
@@ -373,14 +426,13 @@ class DynamoDBService {
       const res = await this.client.send(command);
       const lobbyUserInfos: LobbyUserInfo[] = [];
 
-      
       if (res.Items != undefined) {
         res.Items.forEach((record: any) => {
             // Get user name from users table given userId
-            const userName = 'Bob'
+            const username = 'Bob'
 
             const item = {
-              'userName': userName,
+              'username': username,
               'userId': record['userId']["S"],
               'points': record['points']["N"],
               'role': record['role']['S'],

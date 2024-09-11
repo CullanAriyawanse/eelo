@@ -62,8 +62,9 @@ app.post('/api/lobby/create-lobby', async (req: Request, res: Response) => {
   }
 })
 
+// TODO: Adjust to requirements of frontend page
 // Get lobby information
-app.get('/api/log_management/lobby-info', async (req: Request, res: Response) => {
+app.get('/api/lobby/lobby-info', async (req: Request, res: Response) => {
   try {
     const lobbyId = req.body.lobbyId;
     const response = await dbService.getLobbyInfo(lobbyId);
@@ -99,17 +100,22 @@ app.post('/api/lobby/create-user', async (req: Request, res: Response) => {
   }
 })
 
-// Add user to lobbies table 
-app.patch('/api/lobby/add-user-to-lobby', async (req: Request, res: Response) => {
+// Accept invite to lobby 
+app.post('/api/lobby/accept-lobby-invite', async (req: Request, res: Response) => {
   try {
     const userId = req.body.userId;
     const lobbyId = req.body.lobbyId;
-    const response = await dbService.addUserToLobby(
-      userId,
-      lobbyId,
-    );
+    
+    // Add user to the lobby
+    const addUserResponse = await dbService.addUserToLobby(userId, lobbyId);
+    
+    // Remove lobby invite after successfully adding the user to the lobby
+    const removeInviteResponse = await dbService.removeLobbyInvite(userId, lobbyId);
 
-    return res.status(200).json({ message: response });
+    // Combine responses or send separate messages
+    return res.status(200).json({ 
+      message: `${addUserResponse}. ${removeInviteResponse}` 
+    });
 
   } catch (err) {
     if (err instanceof BadRequestError) {
@@ -118,10 +124,11 @@ app.patch('/api/lobby/add-user-to-lobby', async (req: Request, res: Response) =>
       return res.status(500).json({ message: `Server error: ${err}` });
     }
   }
-})
+});
+
 
 // Invite users to lobby (Only admin/owner)
-app.patch('/api/lobby/invite-users-to-lobby', async (req: Request, res: Response) => {
+app.post('/api/lobby/invite-users-to-lobby', async (req: Request, res: Response) => {
   try {
     const userIds = req.body.userIds;
     const lobbyId = req.body.lobbyId;
@@ -186,11 +193,34 @@ app.delete('/api/lobby/kick-user', async (req: Request, res: Response) => {
   }
 })
 
+
 // Delete lobby (Only admin/owner)
 
 // Add admin perms to users
 
 // Increase/decrease points to multiple users 
+
+// Add friend
+
+// Remove friend
+
+// Decline invite to lobby
+app.delete('/api/lobby/decline-lobby-invite', async (req: Request, res: Response) => {
+  try {
+    const userId = req.body.userId;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.removeLobbyInvite(userId, lobbyId);
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
 
 
 export default app

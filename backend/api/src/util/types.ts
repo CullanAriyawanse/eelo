@@ -6,7 +6,7 @@ export type CreateLobbyRequest = {
 
 export type LobbyUserInfo = {
     userId: string,
-    userName: string,
+    username: string,
     points: number,
     role: string,
     joinDate: string,
