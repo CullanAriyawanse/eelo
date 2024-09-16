@@ -23,7 +23,9 @@ class DynamoDBService {
   }
 
 
-  // HELPER FUNCTIONS
+  /**
+   * HELPER FUNCTIONS
+   */
   
   /**
    * Get user role in a lobby
@@ -34,11 +36,14 @@ class DynamoDBService {
    */
   public getUserRoleInLobby = async (userId: string, lobbyId: string): Promise<string|null> => {
     const getLobbyCommand = new GetItemCommand({
-      TableName: validateEnv.LOBBY_TABLE_NAME, // replace with your table name
+      TableName: validateEnv.LOBBY_TABLE_NAME, 
       Key: {
         'LobbyId': { S: `LOBBY#${lobbyId}` }
       },
-      ProjectionExpression: "Users"
+      ProjectionExpression: "#users",
+      ExpressionAttributeNames: {
+        "#users": "Users" 
+      }
     });
 
     try {
@@ -46,8 +51,8 @@ class DynamoDBService {
       const users = result.Item?.Users?.L || [];
 
       for (const user of users) {
-        if (user.M?.UserId?.S === userId) {
-          return user.M.Role?.S || null; // return the role if found
+        if (user.M?.userId?.S === userId) {
+          return user.M.role?.S || null; // return the role if found
         }
       }
 
@@ -91,12 +96,16 @@ class DynamoDBService {
         TableName: validateEnv.LOBBY_TABLE_NAME,
         Key: {
           LobbyId: { S: `LOBBY#${lobbyId}` }
+        },
+        ProjectionExpression: "#users",
+        ExpressionAttributeNames: {
+          "#users": "Users" 
         }
       });
   
       const lobbyData = await this.client.send(getLobbyCommand);
-      const usersList = lobbyData.Item?.Users?.L ?? [];
-      const userIndex = usersList.findIndex(u => u?.S === `USER#${userId}`);
+      const usersList = lobbyData.Item?.Users?.L || [];
+      const userIndex = usersList.findIndex(u => u.M?.userId?.S === `${userId}`);
   
       if (userIndex === -1) {
         throw new Error("User not found in lobby");
@@ -108,7 +117,10 @@ class DynamoDBService {
         Key: {
           LobbyId: { S: `LOBBY#${lobbyId}` },
         },
-        UpdateExpression: `REMOVE Users[${userIndex}]`,
+        UpdateExpression: `REMOVE #users[${userIndex}]`, 
+        ExpressionAttributeNames: {
+          "#users": "Users" 
+        },
         ReturnValues: "UPDATED_NEW"
       });
   
@@ -122,6 +134,35 @@ class DynamoDBService {
       throw new Error(`Error removing user from lobby or lobby from user's lobbies: ${err}`);
     }
   };
+
+  public addLobbyIdToLobbies = async (userId: string, lobbyId: string): Promise<string> => {
+    try {
+      // Adding lobby ID to the user's list of lobbies
+      const userUpdateCommand = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${userId}` }
+        },
+        UpdateExpression: "SET Lobbies = list_append(if_not_exists(Lobbies, :empty_list), :lobbyId)",
+        ExpressionAttributeValues: {
+          ":empty_list": { L: [] },
+          ":lobbyId": { L: [{ S: `LOBBY#${lobbyId}` }] }
+        },
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      await this.client.send(userUpdateCommand);
+      console.log(`Added lobby Id to ${userId}'s lobbies list`);
+      return `Added lobby Id to ${userId}'s lobbies list`;
+    } catch (err) {
+      console.log(`Error adding lobby id to ${userId}'s lobbies list: ${err}`);
+      throw new DataServiceError(`Error adding lobby id to ${userId}'s lobbies list: ${err}`);
+    }
+  }
+
+  /**
+   * NON-HELPER FUNCTIONS
+   */
 
   /**
    * Create user 
@@ -141,7 +182,8 @@ class DynamoDBService {
         Username: { S: username },
         Lobbies: { L: [] },
         LobbyInvites: { L: [] },
-        Friends: { L: [] }
+        Friends: { L: [] },
+        FriendsInvites: { L: [] }
       },
     });
 
@@ -193,24 +235,9 @@ class DynamoDBService {
     });
 
     // Adding lobby ID to the user's list of lobbies
-    const userUpdateCommand = new UpdateItemCommand({
-      TableName: validateEnv.USER_TABLE_NAME,
-      Key: {
-        UserId: { S: `USER#${userId}` }
-      },
-      UpdateExpression: "SET Lobbies = list_append(if_not_exists(Lobbies, :empty_list), :lobbyId)",
-      ExpressionAttributeValues: {
-        ":empty_list": { L: [] },
-        ":lobbyId": { L: [{ S: `LOBBY#${lobbyId}` }] }
-      },
-      ReturnValues: "UPDATED_NEW"
-    });
-
-    // Executing both updates
-    await Promise.all([
-      this.client.send(lobbyUpdateCommand),
-      this.client.send(userUpdateCommand)
-    ]);
+    await this.client.send(lobbyUpdateCommand)
+    const addLobbyResponse = await this.addLobbyIdToLobbies(userId, lobbyId);
+    console.log(addLobbyResponse);
 
     console.log('User added to lobby and lobby added to user\'s lobbies');
     return 'User added to lobby and lobby added to user\'s lobbies';
@@ -350,7 +377,8 @@ class DynamoDBService {
     ): Promise<string> => {
       try {
         const adminRole = await this.getUserRoleInLobby(adminId, lobbyId);
-        if (adminRole !== "admin" || "owner") {
+        if (adminRole !== "admin" && adminRole !== "owner") {
+          console.log(`Role is ${adminRole}`);
           console.log('Non admin cannot kick user from lobby');
           throw new InvalidRole()
         }
@@ -385,6 +413,7 @@ class DynamoDBService {
       "joinDate": { S: new Date().toISOString() },
       "gamesParticipated": { N: "0" }
     };
+
     const command = new PutItemCommand({
       TableName: validateEnv.LOBBY_TABLE_NAME,
       Item: {
@@ -394,9 +423,15 @@ class DynamoDBService {
         GamesPlayed: { N: "0" },
       },
     });
+
     try {
       await this.client.send(command);
       console.log('Lobby created');
+
+      // Add lobby ID to the user's list of lobbies
+      const addLobbyResponse = await this.addLobbyIdToLobbies(userId, lobbyId);
+      console.log(addLobbyResponse);
+
       return 'Lobby created';
     } catch (err) {
       console.log(`Error creating lobby: ${err}`);
