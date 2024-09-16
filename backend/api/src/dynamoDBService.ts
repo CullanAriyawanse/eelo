@@ -160,6 +160,43 @@ class DynamoDBService {
     }
   }
 
+  public removeFriendInvite = async (senderUserId: string, receiverUserId: string): Promise<string> => {
+    try {
+     const getUserCommand = new GetItemCommand({
+       TableName: validateEnv.USER_TABLE_NAME,
+       Key: {
+         UserId: { S: `USER#${receiverUserId}` }
+       },
+       ProjectionExpression: "FriendsInvites"
+     });
+ 
+     const userData = await this.client.send(getUserCommand);
+     const invitesList = userData.Item?.FriendsInvites?.L ?? [];
+     const inviteIndex = invitesList.findIndex(invite => invite?.S === `${senderUserId}`);
+ 
+     if (inviteIndex === -1) {
+       throw new Error("Friend invite not found in user's invites");
+     }
+ 
+     // Update the user to remove the friend from their invites list
+     const updateUserCommand = new UpdateItemCommand({
+       TableName: validateEnv.USER_TABLE_NAME,
+       Key: {
+         UserId: { S: `USER#${receiverUserId}` },
+       },
+       UpdateExpression: `REMOVE FriendsInvites[${inviteIndex}]`,
+       ReturnValues: "UPDATED_NEW"
+     });
+ 
+      await this.client.send(updateUserCommand);
+      console.log(`Successfully removed friend invite from ${senderUserId} to ${receiverUserId}`);
+      return `Successfully removed friend invite from ${senderUserId} to ${receiverUserId}`;
+    } catch (err) {
+      console.log(`Error removing friend invite from ${senderUserId} to ${receiverUserId}: ${err}`);
+      throw new Error(`Error removing friend invite from ${senderUserId} to ${receiverUserId}: ${err}`);
+    }
+  }
+
   /**
    * NON-HELPER FUNCTIONS
    */
@@ -341,7 +378,6 @@ class DynamoDBService {
     }
   }
 
-  // TODO: Fix user leave lobby cannot find user in usermap in lobby
   /**
    * User leaves lobby themselves
    * 
@@ -486,6 +522,164 @@ class DynamoDBService {
       throw new DataServiceError(`Error getting lobby info: ${err}`);
     }
   };
+
+  /**
+   * Send friend invite 
+   * 
+   * @param {string} senderUserId
+   * @param {string} receiverUserId
+   * @returns 
+   */
+  public sendFriendInvite = async (senderUserId: string, receiverUserId: string): Promise<string> => {
+    try {
+      // Adding sender user id to FriendsInvites list
+      const userUpdateCommand = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${receiverUserId}` }
+        },
+        UpdateExpression: "SET FriendsInvites = list_append(if_not_exists(FriendsInvites, :empty_list), :senderUserId)",
+        ExpressionAttributeValues: {
+          ":empty_list": { L: [] },
+          ":senderUserId": { L: [{ S: `${senderUserId}` }] }
+        },
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      await this.client.send(userUpdateCommand);
+      console.log(`Sent friend invite from user ${senderUserId} to user ${receiverUserId}`);
+      return `Sent friend invite from user ${senderUserId} to user ${receiverUserId}`;
+    } catch (err) {
+      console.log(`Error sending friend invite from user ${senderUserId} to user ${receiverUserId}: ${err}`);
+      throw new DataServiceError(`Error sending friend invite from user ${senderUserId} to user ${receiverUserId}: ${err}`);
+    }
+  }
+
+  /**
+   * Accept friend invite 
+   * 
+   * @param {string} senderUserId
+   * @param {string} receiverUserId
+   * @returns 
+   */
+  public acceptFriendInvite = async (senderUserId: string, receiverUserId: string): Promise<string> => {
+    try {
+      // Adding sender user id to Friends list of receving user 
+      const addSenderIdToFriends = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${receiverUserId}` }
+        },
+        UpdateExpression: "SET Friends = list_append(if_not_exists(Friends, :empty_list), :senderUserId)",
+        ExpressionAttributeValues: {
+          ":empty_list": { L: [] },
+          ":senderUserId": { L: [{ S: `${senderUserId}` }] }
+        },
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      // Adding receover user id to Friends list of sending user 
+      const addReceiverIdToFriends = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${senderUserId}` }
+        },
+        UpdateExpression: "SET Friends = list_append(if_not_exists(Friends, :empty_list), :receiverUserId)",
+        ExpressionAttributeValues: {
+          ":empty_list": { L: [] },
+          ":receiverUserId": { L: [{ S: `${receiverUserId}` }] }
+        },
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      await Promise.all([
+        this.client.send(addSenderIdToFriends),
+        this.client.send(addReceiverIdToFriends),
+        this.removeFriendInvite(senderUserId, receiverUserId)
+      ]);
+
+      console.log(`Accepted invite from user ${senderUserId} to user ${receiverUserId}`);
+      return `Accepted invite from user ${senderUserId} to user ${receiverUserId}`;
+    } catch (err) {
+      console.log(`Error accepting invite from user ${senderUserId} to user ${receiverUserId}: ${err}`);
+      throw new DataServiceError(`Error accepting invite from user ${senderUserId} to user ${receiverUserId}: ${err}`);
+    }
+  }
+
+  /**
+   * Remove friend
+   * 
+   * @param {string} senderUserId
+   * @param {string} receiverUserId
+   * @returns 
+   */
+  public removeFriend = async (senderUserId: string, receiverUserId: string): Promise<string> => {
+    try {
+      // Remove sender user from receiver user friends
+      const getReceiverUserCommand = new GetItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${receiverUserId}` }
+        },
+        ProjectionExpression: "Friends"
+      });
+  
+      const receiverUserData = await this.client.send(getReceiverUserCommand);
+      const receiverFriendsList = receiverUserData.Item?.Friends?.L ?? [];
+      const receiverFriendIndex = receiverFriendsList.findIndex(friend => friend?.S === `${senderUserId}`);
+  
+      if (receiverFriendIndex === -1) {
+        throw new Error("Sender friend not found in receiver user's friends list");
+      }
+  
+      const updateReceiverUserCommand = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${receiverUserId}` },
+        },
+        UpdateExpression: `REMOVE Friends[${receiverFriendIndex}]`,
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      // Remove receiver user from sender user friends
+      const getSenderUserCommand = new GetItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${senderUserId}` }
+        },
+        ProjectionExpression: "Friends"
+      });
+  
+      const senderUserData = await this.client.send(getSenderUserCommand);
+      const senderFriendsList = senderUserData.Item?.Friends?.L ?? [];
+      const senderFriendIndex = senderFriendsList.findIndex(friend => friend?.S === `${receiverUserId}`);
+  
+      if (senderFriendIndex === -1) {
+        throw new Error("Friend not found in user's friends list");
+      }
+  
+      // Update the user to remove the friend from their invites list
+      const updateSenderUserCommand = new UpdateItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${senderUserId}` },
+        },
+        UpdateExpression: `REMOVE Friends[${senderFriendIndex}]`,
+        ReturnValues: "UPDATED_NEW"
+      });
+
+      await Promise.all([
+        this.client.send(updateReceiverUserCommand),
+        this.client.send(updateSenderUserCommand),
+      ]);
+       console.log(`Successfully removed friend from ${senderUserId} to ${receiverUserId}`);
+       return `Successfully removed friend from ${senderUserId} to ${receiverUserId}`;
+     } catch (err) {
+       console.log(`Error removing friend from ${senderUserId} to ${receiverUserId}: ${err}`);
+       throw new Error(`Error removing friend from ${senderUserId} to ${receiverUserId}: ${err}`);
+     }
+  };
+
 }
 
 export default DynamoDBService;

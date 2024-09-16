@@ -81,7 +81,7 @@ app.get('/api/lobby/lobby-info', async (req: Request, res: Response) => {
 
 
 // Add user to users table
-app.post('/api/lobby/create-user', async (req: Request, res: Response) => {
+app.post('/api/user/create-user', async (req: Request, res: Response) => {
   try {
     const createUserRequest = req.body as CreateUserRequest;
     const response = await dbService.createUser(
@@ -148,6 +148,24 @@ app.post('/api/lobby/invite-users-to-lobby', async (req: Request, res: Response)
   }
 })
 
+// Decline invite to lobby
+app.delete('/api/lobby/decline-lobby-invite', async (req: Request, res: Response) => {
+  try {
+    const userId = req.body.userId;
+    const lobbyId = req.body.lobbyId;
+    const response = await dbService.removeLobbyInvite(userId, lobbyId);
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
+
 // User leaves lobby 
 app.delete('/api/lobby/user-leave-lobby', async (req: Request, res: Response) => {
   try {
@@ -200,16 +218,15 @@ app.delete('/api/lobby/kick-user', async (req: Request, res: Response) => {
 
 // Increase/decrease points to multiple users 
 
-// Add friend
-
-// Remove friend
-
-// Decline invite to lobby
-app.delete('/api/lobby/decline-lobby-invite', async (req: Request, res: Response) => {
+// Send friend invite
+app.post('/api/user/send-friend-invite', async (req: Request, res: Response) => {
   try {
-    const userId = req.body.userId;
-    const lobbyId = req.body.lobbyId;
-    const response = await dbService.removeLobbyInvite(userId, lobbyId);
+    const senderUserId = req.body.senderUserId;
+    const receiverUserId = req.body.receiverUserId;
+    const response = await dbService.sendFriendInvite(
+      senderUserId,
+      receiverUserId,
+    );
 
     return res.status(200).json({ message: response });
 
@@ -222,5 +239,67 @@ app.delete('/api/lobby/decline-lobby-invite', async (req: Request, res: Response
   }
 })
 
+// Accept friend invite
+app.post('/api/user/accept-friend-invite', async (req: Request, res: Response) => {
+  try {
+    const senderUserId = req.body.senderUserId;
+    const receiverUserId = req.body.receiverUserId;
+    const response = await dbService.acceptFriendInvite(
+      senderUserId,
+      receiverUserId,
+    );
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
+
+// Deny friend invite 
+app.delete('/api/user/deny-friend-invite', async (req: Request, res: Response) => {
+  try {
+    const senderUserId = req.body.senderUserId;
+    const receiverUserId = req.body.receiverUserId;
+    const response = await dbService.removeFriendInvite(
+      senderUserId,
+      receiverUserId,
+    );
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
+
+// Remove friend
+app.delete('/api/user/remove-friend', async (req: Request, res: Response) => {
+  try {
+    const senderUserId = req.body.senderUserId;
+    const receiverUserId = req.body.receiverUserId;
+    const response = await dbService.removeFriend(
+      senderUserId,
+      receiverUserId,
+    );
+
+    return res.status(200).json({ message: response });
+
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+})
 
 export default app
