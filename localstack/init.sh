@@ -9,7 +9,7 @@ AWS_OPTIONS="--profile test --endpoint-url http://localhost:4566"
 AWS_ACCOUND_ID="000000000000"
 
 aws dynamodb create-table \
-    --table-name users-database \
+    --table-name user-database \
     --attribute-definitions \
         AttributeName=UserId,AttributeType=S \
     --key-schema \
@@ -18,12 +18,12 @@ aws dynamodb create-table \
     $AWS_OPTIONS
 
 aws dynamodb create-table \
-    --table-name lobbies-database \
+    --table-name lobby-database \
     --attribute-definitions \
-        AttributeName=UserId,AttributeType=S \
+        AttributeName=LobbyId,AttributeType=S \
     --key-schema \
-        AttributeName=UserId,KeyType=HASH \
+        AttributeName=LobbyId,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
     $AWS_OPTIONS
 
-awslocal cognito-idp create-user-pool --pool-name test
+# awslocal cognito-idp create-user-pool --pool-name test
