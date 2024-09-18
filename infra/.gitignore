@@ -1,0 +1,6 @@
+.vscode
+.idea
+*.tfstate
+*.tfstate.backup
+.terraform.tfstate.lock.info
+.terraform/
