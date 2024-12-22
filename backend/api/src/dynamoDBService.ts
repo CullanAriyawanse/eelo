@@ -482,46 +482,51 @@ class DynamoDBService {
    * @returns {LobbyUserInfo[]} 
    */
   public getLobbyInfo = async (lobbyId: string): Promise<LobbyUserInfo[]> => {
-    const command = new ScanCommand({
+    console.log(`LOBBY ID IS ${lobbyId}`);
+    const command = new QueryCommand({
       TableName: validateEnv.LOBBY_TABLE_NAME,
-      FilterExpression: '#pk = :lobbyIdPrefix',
+      KeyConditionExpression: '#pk = :lobbyId',
       ExpressionAttributeNames: {
         '#pk': 'LobbyId',
       },
       ExpressionAttributeValues: {
-        ':lobbyIdPrefix': { S: `LOBBY#${lobbyId}` },
+        ':lobbyId': { S: `${lobbyId}` },
       },
     });
-
+  
     try {
       const res = await this.client.send(command);
       const lobbyUserInfos: LobbyUserInfo[] = [];
-
-      if (res.Items != undefined) {
-        res.Items.forEach((record: any) => {
-            // Get user name from users table given userId
-            const username = 'Bob'
-
-            const item = {
-              'username': username,
-              'userId': record['userId']["S"],
-              'points': record['points']["N"],
-              'role': record['role']['S'],
-              'joinDate': record['joinDate']['S'],
-              'gamesParticipated': record['gamesParticipated']['N'],
-            }
-            lobbyUserInfos.push(item);
-            console.log(lobbyUserInfos);
-          });
-
-          return lobbyUserInfos;
-        } else {
-          throw new DataServiceError(`Error getting lobby info`)
+  
+      if (res.Items && res.Items.length > 0) {
+        for (const record of res.Items) {
+          const username = 'f'; // Fetch username from users table
+  
+          const item = {
+            username: username || 'Unknown User',
+            userId: record['userId']?.S || 'Unknown',
+            points: record['points']?.N ? Number(record['points']?.N) : 0, // Convert to number
+            role: record['role']?.S || 'Unknown Role',
+            joinDate: record['joinDate']?.S || 'Unknown Date',
+            gamesParticipated: record['gamesParticipated']?.N
+              ? Number(record['gamesParticipated']?.N)
+              : 0, // Convert to number
+          };
+          
+          lobbyUserInfos.push(item);
         }
+  
+        return lobbyUserInfos;
+      } else {
+        console.log(`No data found for lobbyId: ${lobbyId}`);
+        return [];
+      }
     } catch (err) {
+      console.error(`Error fetching lobby info: ${err}`);
       throw new DataServiceError(`Error getting lobby info: ${err}`);
     }
   };
+  
 
   /**
    * Send friend invite 
@@ -678,6 +683,37 @@ class DynamoDBService {
        console.log(`Error removing friend from ${senderUserId} to ${receiverUserId}: ${err}`);
        throw new Error(`Error removing friend from ${senderUserId} to ${receiverUserId}: ${err}`);
      }
+  };
+
+  /**
+   * Get a list of all lobbies that a user is a part of
+   * 
+   * @param {string} userId - The ID of the user
+   * @returns {Promise<string[]>} - A list of lobby IDs the user is part of
+   */
+  public getUserLobbies = async (userId: string): Promise<string[]> => {
+    try {
+      // Fetch the user to get the current list of lobbies
+      const getUserCommand = new GetItemCommand({
+        TableName: validateEnv.USER_TABLE_NAME,
+        Key: {
+          UserId: { S: `USER#${userId}` }
+        },
+        ProjectionExpression: "Lobbies" // Only fetch the Lobbies attribute
+      });
+
+      const userData = await this.client.send(getUserCommand);
+      const lobbiesList = userData.Item?.Lobbies?.L ?? [];
+
+      // Map the list of Lobbies to an array of lobby IDs
+      const lobbyIds = lobbiesList.map(lobby => lobby?.S || '').filter(id => id);
+
+      console.log(`Retrieved lobbies for user ${userId}:`, lobbyIds);
+      return lobbyIds;
+    } catch (err) {
+      console.log(`Error fetching lobbies for user ${userId}: ${err}`);
+      throw new DataServiceError(`Error fetching lobbies for user ${userId}: ${err}`);
+    }
   };
 
 }

@@ -66,7 +66,7 @@ app.post('/api/lobby/create-lobby', async (req: Request, res: Response) => {
 // Get lobby information
 app.get('/api/lobby/lobby-info', async (req: Request, res: Response) => {
   try {
-    const lobbyId = req.body.lobbyId;
+    const lobbyId = req.query.lobbyId as string;
     const response = await dbService.getLobbyInfo(lobbyId);
 
     return res.status(200).json(response);
@@ -301,5 +301,30 @@ app.delete('/api/user/remove-friend', async (req: Request, res: Response) => {
     }
   }
 })
+
+// Get all lobbies a user is part of
+app.get('/api/user/all-lobbies', async (req: Request, res: Response) => {
+  try {
+    const userId = req.query.userId as string;
+
+    if (!userId) {
+      throw new BadRequestError('User ID is required as a query parameter');
+    }
+
+    const response = await dbService.getUserLobbies(userId);
+
+    return res.status(200).json({
+      userId: userId,
+      lobbies: response,
+    });
+  } catch (err) {
+    if (err instanceof BadRequestError) {
+      return res.status(400).send({ message: err.message });
+    } else {
+      return res.status(500).json({ message: `Server error: ${err}` });
+    }
+  }
+});
+
 
 export default app

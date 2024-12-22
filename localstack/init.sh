@@ -6,7 +6,7 @@ aws configure set region ap-southeast-2 --profile test
 aws configure set cli_pager true --profile test
 
 AWS_OPTIONS="--profile test --endpoint-url http://localhost:4566"
-AWS_ACCOUND_ID="000000000000"
+AWS_ACCOUNT_ID="000000000000"
 
 aws dynamodb create-table \
     --table-name user-database \
